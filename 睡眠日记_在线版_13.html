@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>睡眠日记 · 患者端 / 医生端</title>
+<style>
+  :root{
+    --ink:#16233f; --blue:#1f4e79; --blue2:#2e5496; --blue-soft:#eaf0f8;
+    --bg:#eef3f9; --card:#ffffff; --line:#d4deec; --muted:#5d6a83;
+    --good:#1f7a5a; --good-bg:#e1f2ea; --warn:#b5781b; --warn-bg:#fbefda; --bad:#b0413c; --bad-bg:#fbe3e1;
+    --sleep:#2e5496; --awake:#e0a93a; --waso:#c2702a; --restbed:#f0d9a8;
+    --shadow:0 1px 2px rgba(22,35,63,.06),0 10px 30px rgba(22,35,63,.07);
+    --radius:16px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.55;font-size:17px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 18px 72px}
+  .ic{width:18px;height:18px;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  header.top{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;
+    padding-bottom:16px;border-bottom:3px solid var(--blue);margin-bottom:14px}
+  .brand h1{font-size:28px;margin:0 0 3px;letter-spacing:.5px;color:var(--blue);display:flex;align-items:center;gap:10px}
+  .brand h1 .ic{width:26px;height:26px;stroke-width:1.8}
+  .brand p{margin:0;color:var(--muted);font-size:14px}
+
+  /* mode toggle */
+  .mode{display:inline-flex;background:#dfe8f4;border-radius:14px;padding:5px;gap:4px}
+  .mode button{border:none;background:transparent;color:var(--muted);font-weight:800;font-size:15px;
+    padding:10px 18px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:.15s}
+  .mode button .ic{width:19px;height:19px}
+  .mode button.active{background:#fff;color:var(--blue);box-shadow:0 2px 6px rgba(22,35,63,.12)}
+  .mode button:focus-visible{outline:3px solid #a9c4e8}
+
+  .modebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;
+    background:var(--blue-soft);border:1px solid #d6e2f2;border-radius:13px;padding:11px 15px}
+  .modebar .who{font-size:14px;color:var(--blue2);font-weight:700;display:flex;align-items:center;gap:8px}
+  .modebar .desc{font-size:13.5px;color:var(--muted)}
+
+  .legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  .legend .l{font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:999px;display:flex;gap:6px;align-items:center}
+  .legend .dot{width:10px;height:10px;border-radius:50%}
+
+  .meta{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+  .meta label{font-size:13px;color:var(--muted);font-weight:600;display:flex;flex-direction:column;gap:5px}
+  .meta input{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card);min-width:150px}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+  button.btn{font:inherit;cursor:pointer;border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+    padding:11px 15px;border-radius:12px;font-size:15px;font-weight:700;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+  button.btn:hover{border-color:var(--blue2);color:var(--blue2)}
+  button.btn:focus-visible{outline:3px solid #a9c4e8;outline-offset:2px}
+  button.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  button.btn.primary:hover{background:var(--blue2);color:#fff}
+  button.btn.ghost{background:transparent}
+  button.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+
+  .sec{margin-top:24px}
+  .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .sec-head .badge{width:36px;height:36px;border-radius:11px;background:var(--blue);color:#fff;display:grid;place-items:center}
+  .sec-head .badge .ic{width:20px;height:20px;stroke-width:2}
+  .sec-head h2{margin:0;font-size:20px;color:var(--blue)}
+  .sec-head .hint2{font-size:13.5px;color:var(--muted);margin-left:auto;font-weight:600;display:flex;gap:7px;align-items:center}
+  .collapse-all{font-size:13px;color:var(--blue2);background:transparent;border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-weight:700;cursor:pointer}
+  .collapse-all:hover{border-color:var(--blue2)}
+
+  .day{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+  .day-head{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:13px 16px;
+    background:linear-gradient(180deg,#fbfcfe,#eef4fb);border-bottom:1.5px solid var(--line)}
+  .day-head .idx{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+  .day-head .num{width:30px;height:30px;border-radius:9px;background:var(--blue);color:#fff;font-size:15px;display:grid;place-items:center;font-weight:800}
+  .day-head h3{margin:0;font-size:17px}
+  .day-head input[type=date]{font:inherit;font-size:14px;padding:6px 9px;border:1.5px solid var(--line);border-radius:9px;background:#fff}
+  .head-se{display:none;align-items:center;gap:8px;font-size:14px;font-weight:800}
+  .head-se .chip{font-size:12px;padding:2px 10px;border-radius:999px}
+  .day.collapsed .head-se{display:inline-flex}
+  .head-actions{display:flex;align-items:center;gap:4px}
+  .iconbtn{border:none;background:transparent;color:var(--muted);padding:7px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
+  .iconbtn:hover{background:#e7eef8;color:var(--blue2)}
+  .iconbtn .ic{width:19px;height:19px}
+  .chev .ic{transition:transform .2s}
+  .day.collapsed .chev .ic{transform:rotate(-90deg)}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 16px;padding:18px}
+  .day.collapsed .grid,.day.collapsed details.more,.day.collapsed .calc{display:none}
+  .f{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .f label{font-size:14px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:7px}
+  .f label .ic{color:var(--blue2);width:17px;height:17px}
+  .f .hint{font-size:12px;color:#8392ab;font-weight:500;margin-left:2px}
+  .f input,.f select{font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;background:#fff;width:100%;min-height:46px}
+  .f input:focus,.f select:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px #dfeafa}
+  .f.qual select{font-weight:700}
+  .tconv{font-size:12.5px;color:var(--blue2);font-weight:800;min-height:16px;margin-top:1px;letter-spacing:.2px}
+  .tnote{background:var(--blue-soft);border:1px solid #dfe4fb;color:#444a6b;border-radius:12px;padding:12px 15px;font-size:14.5px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+  .tnote .ic{color:var(--blue2);margin-top:2px;flex:none}
+  .tnote b{color:var(--blue)}
+  .add-hint{text-align:center;color:var(--muted);font-size:13.5px;margin:10px 0 0}
+  .qr-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0 4px}
+  #qr-url{flex:1;min-width:240px;font:inherit;font-size:15px;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px}
+  #qr-url:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px #dfeafa}
+  .qr-msg{font-size:13.5px;color:var(--muted);min-height:18px;margin:8px 0}
+  .qr-card{display:inline-block;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:26px 30px;text-align:center;box-shadow:var(--shadow)}
+  .qr-title{font-size:21px;font-weight:800;color:var(--blue);margin-bottom:4px}
+  .qr-sub{font-size:14.5px;color:var(--muted);margin-top:14px}
+  .qr-img{width:280px;height:280px;display:block;margin:14px auto 0;image-rendering:pixelated}
+  .qr-link{font-size:12.5px;color:var(--blue2);margin:8px auto 0;word-break:break-all;max-width:300px}
+
+  details.more{padding:0 18px 8px}
+  details.more summary{cursor:pointer;color:var(--blue2);font-size:15px;font-weight:700;padding:10px 0;list-style:none;user-select:none;display:flex;align-items:center;gap:8px}
+  details.more summary::-webkit-details-marker{display:none}
+  details.more .grid{padding:8px 0 16px}
+
+  .calc{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:15px 18px;background:#eff5fb;border-top:2px dashed var(--line)}
+  .calc .label{font-size:13px;color:var(--blue2);font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+  .metric{display:flex;flex-direction:column;gap:2px;min-width:84px}
+  .metric .v{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
+  .metric .k{font-size:12.5px;color:var(--muted);font-weight:600}
+  .se-wrap{flex:1;min-width:180px;display:flex;flex-direction:column;gap:7px}
+  .se-top{display:flex;justify-content:space-between;align-items:baseline}
+  .se-top .pct{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+  .se-top .chip{font-size:13px;font-weight:800;padding:3px 12px;border-radius:999px}
+  .meter{height:13px;border-radius:999px;background:#dde6f2;overflow:hidden;position:relative}
+  .meter>i{display:block;height:100%;width:0;border-radius:999px;transition:width .4s ease}
+  .meter::after{content:"";position:absolute;top:-2px;bottom:-2px;left:85%;width:2px;background:#93a6c2}
+  .g{color:var(--good)} .g-bg{background:var(--good-bg);color:var(--good)} .g-fill{background:var(--good)}
+  .w{color:var(--warn)} .w-bg{background:var(--warn-bg);color:var(--warn)} .w-fill{background:var(--warn)}
+  .b{color:var(--bad)}  .b-bg{background:var(--bad-bg);color:var(--bad)}  .b-fill{background:var(--bad)}
+  .calc .na{color:#92a0b8;font-size:14px}
+
+  .tl-card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .tl-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:13.5px;font-weight:600;color:var(--muted)}
+  .tl-legend .li{display:flex;align-items:center;gap:7px}
+  .tl-legend .sw{width:18px;height:12px;border-radius:3px}
+  .tl-axis{position:relative;height:20px;margin-left:96px;margin-bottom:2px}
+  .tl-axis .tk{position:absolute;top:0;transform:translateX(-50%);font-size:11.5px;color:#8392ab;font-weight:600}
+  .tl-row{display:flex;align-items:center;margin:8px 0}
+  .tl-label{width:96px;flex:none;font-size:13px;font-weight:700}
+  .tl-label small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+  .tl-track{position:relative;flex:1;height:34px;background:#f1f5fa;border-radius:9px;overflow:hidden;border:1px solid #e6edf6}
+  .tl-track .gl{position:absolute;top:0;bottom:0;width:1px;background:#e2eaf4}
+  .tl-seg{position:absolute;top:5px;height:24px;border-radius:5px}
+  .tl-sleep{background:var(--sleep)} .tl-awake{background:var(--awake)} .tl-rest{background:var(--restbed)}
+  .tl-waso{background:var(--waso);border-radius:3px}
+  .tl-meta{width:118px;flex:none;text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+  .tl-meta small{display:block;font-size:11.5px;color:var(--muted);font-weight:600}
+  .tl-note{font-size:12.5px;color:#8392ab;margin-top:12px}
+
+  .doc{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .doc-head{display:flex;align-items:center;gap:10px;padding:15px 20px;background:var(--blue);color:#fff}
+  .doc-head h2{margin:0;font-size:18px;display:flex;align-items:center;gap:9px}
+  .doc-head .sub{font-size:13px;opacity:.9;margin-left:auto;font-weight:600}
+  .avgs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--line)}
+  .avg{background:#fff;padding:16px 12px;text-align:center}
+  .avg .ic{width:18px;height:18px;color:var(--blue2);margin-bottom:4px}
+  .avg .v{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.05}
+  .avg .k{font-size:12.5px;color:var(--muted);margin-top:5px;font-weight:600}
+  .avg .u{font-size:13px;color:#9aa6bb;font-weight:700}
+  .advice{padding:14px 20px 20px}
+  .advice h4{margin:0 0 12px;font-size:14px;color:var(--blue2);letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+  .advice ul{margin:0;padding-left:0;list-style:none}
+  .advice li{margin:9px 0;font-size:16px;display:flex;gap:9px;align-items:flex-start}
+  .advice li .ic{color:var(--blue2);margin-top:3px}
+  .advice .pill{flex:none;font-size:12px;font-weight:800;padding:2px 10px;border-radius:999px;margin-top:2px}
+  .disclaim{font-size:13px;color:var(--muted);padding:0 20px 18px}
+
+  .cardbox{margin-top:18px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .cardbox .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .cardbox h3{margin:0;font-size:18px;color:var(--blue);display:flex;align-items:center;gap:9px}
+  #card-canvas{width:100%;max-width:520px;height:auto;display:block;margin:0 auto;border:1px solid var(--line);border-radius:12px}
+  .cardbox .note{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
+
+  footer.note{margin-top:24px;font-size:13px;color:var(--muted);text-align:center}
+
+  /* password modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(16,35,63,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:390px;width:100%;padding:26px}
+  .modal h3{margin:0 0 6px;font-size:20px;color:var(--blue);display:flex;align-items:center;gap:9px}
+  .modal h3 .ic{width:22px;height:22px}
+  .modal p{margin:0 0 16px;color:var(--muted);font-size:14px}
+  .modal input{font:inherit;font-size:18px;width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;letter-spacing:3px;text-align:center}
+  .modal input:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px #dfeafa}
+  .modal .err{color:var(--bad);font-size:13.5px;font-weight:700;margin-top:8px;min-height:18px}
+  .modal .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+
+  /* CBT-I */
+  .cbti-card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .rx{display:flex;flex-wrap:wrap;gap:14px;background:linear-gradient(180deg,#f3f8fd,#eaf1fa);border:1.5px solid #cfdef0;border-radius:13px;padding:16px 18px;margin-bottom:18px}
+  .rx .item{flex:1;min-width:130px;display:flex;flex-direction:column;gap:3px;padding:4px 6px}
+  .rx .item .v{font-size:27px;font-weight:900;color:var(--blue);font-variant-numeric:tabular-nums;line-height:1.1}
+  .rx .item .k{font-size:13px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:6px}
+  .rx .item .k .ic{width:15px;height:15px;color:var(--blue2)}
+  .cbti-grp{margin:16px 0}
+  .cbti-grp h4{display:flex;gap:9px;align-items:center;font-size:16px;color:var(--blue);margin:0 0 9px}
+  .cbti-grp h4 .ic{color:var(--blue2)}
+  .cbti-grp ul{margin:0;padding-left:0;list-style:none}
+  .cbti-grp li{display:flex;gap:10px;margin:8px 0;font-size:16px;line-height:1.5}
+  .cbti-grp li .ic{color:var(--good);margin-top:4px;flex:none;width:17px;height:17px}
+  .cbti-grp.alert li .ic{color:var(--warn)}
+
+  /* mode visibility */
+  body.mode-patient .doc-only{display:none!important}
+  body.mode-doctor .pat-only{display:none!important}
+
+  /* ===== Patient theme: lively & friendly ===== */
+  body.mode-patient{
+    --blue:#5a4ff3; --blue2:#7c5cfc; --blue-soft:#eef0ff;
+    --bg:#f2f5ff; --line:#e5e7f8;
+    --good:#0fb589; --good-bg:#d6f5ea; --warn:#f59f00; --warn-bg:#fff2d4; --bad:#fa5252; --bad-bg:#ffe3e3;
+    --sleep:#5a4ff3; --awake:#ffb43a; --waso:#ff8a8a; --restbed:#ffe2ab;
+    --radius:20px;
+    background:radial-gradient(900px 420px at 100% -6%, #e9e6ff 0%, transparent 60%),
+               radial-gradient(720px 380px at -6% 2%, #d8f6ef 0%, transparent 55%), var(--bg);
+  }
+  body.mode-patient header.top{background:linear-gradient(120deg,#6d5dfc 0%,#8b5cf6 46%,#19c3b2 112%);
+    border:none;border-radius:22px;padding:20px 22px;margin-bottom:16px;box-shadow:0 12px 30px rgba(109,93,252,.25)}
+  body.mode-patient .brand h1,body.mode-patient .brand p{color:#fff}
+  body.mode-patient .brand p{opacity:.92}
+  body.mode-patient .mode{background:rgba(255,255,255,.22)}
+  body.mode-patient .mode button{color:rgba(255,255,255,.92)}
+  body.mode-patient .mode button.active{background:#fff;color:#5a4ff3}
+  body.mode-patient .modebar{background:#fff}
+  body.mode-patient .sec-head .badge{box-shadow:0 6px 14px rgba(90,79,243,.22)}
+  body.mode-patient .sec:nth-of-type(1) .badge{background:linear-gradient(135deg,#15c0ad,#0fb5d6)}
+  body.mode-patient .sec:nth-of-type(1) h2{color:#0aa6b6}
+  body.mode-patient .sec:nth-of-type(2) .badge{background:linear-gradient(135deg,#7c5cfc,#9b5cff)}
+  body.mode-patient .sec:nth-of-type(2) h2{color:#7c5cfc}
+  body.mode-patient .sec:nth-of-type(3) .badge{background:linear-gradient(135deg,#ff8a5c,#ff6f91)}
+  body.mode-patient .sec:nth-of-type(3) h2{color:#ff7a59}
+  body.mode-patient .day{border-color:#e9e9fb}
+  body.mode-patient .day-head{background:linear-gradient(180deg,#fbfaff,#f1efff)}
+  body.mode-patient .day-head .num{background:linear-gradient(135deg,#6d5dfc,#19c3b2)}
+  body.mode-patient button.btn.primary{background:linear-gradient(135deg,#6d5dfc,#7c5cfc);border:none}
+  body.mode-patient .doc-head{background:linear-gradient(120deg,#6d5dfc,#19c3b2)}
+  body.mode-patient .avgs{background:transparent;gap:10px;padding:12px}
+  body.mode-patient .avg{border-radius:15px}
+  body.mode-patient .avg:nth-child(1){background:#f1efff}
+  body.mode-patient .avg:nth-child(2){background:#e6faf2}
+  body.mode-patient .avg:nth-child(3){background:#fff6e3}
+  body.mode-patient .avg:nth-child(4){background:#ffeef0}
+  body.mode-patient .avg:nth-child(5){background:#eef5ff}
+  body.mode-patient .advice li{font-size:16.5px}
+  body.mode-patient .calc{background:#f3f1ff}
+
+  /* ===== Doctor theme: clean & professional ===== */
+  body.mode-doctor{--bg:#e9edf3; --line:#cfd8e6; --radius:12px;}
+  body.mode-doctor .day,body.mode-doctor .tl-card,body.mode-doctor .doc,body.mode-doctor .cbti-card,body.mode-doctor .cardbox{box-shadow:0 1px 2px rgba(22,35,63,.05),0 4px 14px rgba(22,35,63,.06)}
+  body.mode-doctor .sec-head h2{letter-spacing:.3px;font-size:19px}
+  body.mode-doctor .day-head{background:#f4f7fb}
+  body.mode-doctor .calc{background:#eef3f9}
+
+
+  @media (max-width:760px){
+    body{font-size:16px}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .avgs{grid-template-columns:repeat(2,1fr)}
+    .brand h1{font-size:22px}
+    .legend{width:100%;margin-left:0}
+    .tl-axis{margin-left:66px} .tl-label{width:66px} .tl-meta{width:92px}
+  }
+  @media (max-width:440px){ .grid{grid-template-columns:1fr} }
+  @media print{ .no-print{display:none!important} body{background:#fff} .day,.doc,.tl-card,.cardbox{box-shadow:none;break-inside:avoid} .day.collapsed .grid,.day.collapsed details.more,.day.collapsed .calc{display:block} details.more summary{display:none} .wrap{max-width:none;padding:0} }
+</style>
+</head>
+<body class="mode-patient">
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>睡眠日记</h1>
+      <p id="brand-sub">逐日填写 · 卧床 / 总睡眠 / 睡眠效率自动计算 · 一键周报</p>
+    </div>
+    <div class="mode no-print" id="mode">
+      <button data-mode="patient" class="active"><svg class="ic" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>患者端</button>
+      <button data-mode="doctor"><svg class="ic" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6M9 17h4"/></svg>医生端</button>
+    </div>
+  </header>
+
+  <div class="modebar no-print">
+    <span class="who" id="who"></span>
+    <span class="desc" id="who-desc"></span>
+    <div class="legend doc-only">
+      <span class="l g-bg"><span class="dot" style="background:var(--good)"></span>≥85% 良好</span>
+      <span class="l w-bg"><span class="dot" style="background:var(--warn)"></span>80–85% 偏低</span>
+      <span class="l b-bg"><span class="dot" style="background:var(--bad)"></span>&lt;80% 低</span>
+    </div>
+  </div>
+
+  <div class="meta no-print">
+    <label>姓名<input id="m-name" type="text" placeholder="患者姓名"></label>
+    <label>病历号<input id="m-id" type="text" placeholder="选填"></label>
+    <label>记录起始<input id="m-start" type="date"></label>
+  </div>
+
+  <div class="toolbar no-print">
+    <button class="btn primary pat-only" id="add"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加一天</button>
+    <button class="btn ghost pat-only" id="sample"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>填入示例</button>
+    <button class="btn doc-only" id="print"><svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>打印 / PDF</button>
+    <button class="btn doc-only" id="csv"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出 CSV</button>
+    <button class="btn doc-only" id="save"><svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存进度</button>
+    <button class="btn doc-only" id="load"><svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>载入进度</button>
+    <button class="btn ghost danger doc-only" id="clear"><svg class="ic" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>清空</button>
+    <input id="file" type="file" accept="application/json" hidden>
+  </div>
+
+  <!-- ① patient input -->
+  <section class="sec pat-only">
+    <div class="sec-head">
+      <span class="badge"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+      <h2>每日填写</h2>
+      <span class="hint2"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>起床后 1 小时内填
+        <button class="collapse-all" id="toggle-all">收起已填</button></span>
+    </div>
+    <div class="tnote pat-only"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>时间请用 <b>24 小时制</b>：晚上 11 点填 <b>23:00</b>，早上 7 点填 <b>07:00</b>，中午 12 点填 <b>12:00</b>。选好后下方会显示「= 晚上11:00」帮你确认。</span></div>
+    <div id="days"></div>
+    <button class="btn primary no-print" id="add2" style="width:100%;justify-content:center"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加一天</button>
+    <p class="add-hint pat-only">每天填一次即可；明天再来时，点「添加一天」继续记录下一晚。</p>
+  </section>
+
+  <!-- ② timeline -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="badge"><svg class="ic" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+      <h2>睡眠时段时间轴</h2><span class="hint2">自动生成 · 逐晚对比</span>
+    </div>
+    <div class="tl-card">
+      <div class="tl-legend">
+        <span class="li"><span class="sw tl-awake"></span>入睡前清醒（含入睡用时）</span>
+        <span class="li"><span class="sw tl-sleep"></span>睡眠</span>
+        <span class="li"><span class="sw tl-waso"></span>夜醒（示意位置）</span>
+        <span class="li"><span class="sw tl-rest"></span>醒后躺床</span>
+      </div>
+      <div class="tl-axis" id="tl-axis"></div>
+      <div id="timeline"></div>
+      <p class="tl-note">横轴为时间。夜醒“位置”为示意（日记仅记录总时长），其长度按实际填写绘制。</p>
+    </div>
+  </section>
+
+  <!-- ③ summary -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="badge"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+      <h2 class="pat-only">本周小结</h2><h2 class="doc-only">医生小结 / 周报卡片</h2>
+      <span class="hint2">自动计算</span>
+    </div>
+    <div class="doc">
+      <div class="doc-head">
+        <h2 class="pat-only"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>这一周睡得怎么样</h2>
+        <h2 class="doc-only"><svg class="ic" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>本周自动小结</h2>
+        <span class="sub" id="doc-n">0 天有效</span>
+      </div>
+      <div class="avgs" id="avgs"></div>
+      <div class="advice">
+        <h4 class="pat-only"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1 2 1 2h6s0-1 1-2a7 7 0 0 0-4-12z"/></svg>给你的小提示</h4>
+        <h4 class="doc-only"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1 2 1 2h6s0-1 1-2a7 7 0 0 0-4-12z"/></svg>解读与建议（供医师参考）</h4>
+        <ul id="advice"></ul>
+      </div>
+      <p class="disclaim doc-only">说明：以上为基于日记数据的决策支持，不替代医师判断；请结合 ISI / PSQI 等量表与临床（必要时 PSG）。睡眠效率 SE = 实际睡眠时间 ÷ 卧床时间 × 100%。</p>
+      <p class="disclaim pat-only">小结仅供参考，具体睡眠问题请遵医嘱。坚持记录有助于医生为你调整方案。</p>
+    </div>
+
+    <div class="cardbox doc-only">
+      <div class="row">
+        <h3><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>周报卡片（可发患者）</h3>
+        <button class="btn primary" id="gen-card" style="margin-left:auto"><svg class="ic" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>生成 / 更新卡片</button>
+        <button class="btn" id="dl-card"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载图片(PNG)</button>
+      </div>
+      <canvas id="card-canvas" width="1040" height="1400"></canvas>
+      <p class="note">把均值、每日睡眠效率与睡眠时段整合成一张大白话卡片，截图或下载后发给患者。</p>
+    </div>
+  </section>
+
+  <!-- ④ CBT-I (doctor) -->
+  <section class="sec doc-only">
+    <div class="sec-head">
+      <span class="badge"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></svg></span>
+      <h2>CBT-I 个体化建议</h2><span class="hint2">据本周日记自动生成</span>
+    </div>
+    <div class="cbti-card">
+      <div id="cbti"></div>
+      <p class="disclaim" style="padding:0;margin-top:14px">本建议为基于睡眠日记的 CBT-I 决策支持草案，需结合 ISI 等量表与临床判断；睡眠限制对双相情感障碍、未控制的癫痫、严重日间嗜睡或职业驾驶/高危作业者应先评估安全性后慎用。</p>
+    </div>
+  </section>
+
+  <!-- ⑤ QR scan-to-use (doctor) -->
+  <section class="sec doc-only">
+    <div class="sec-head">
+      <span class="badge"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v3h-3M14 21h3M21 21v-3"/></svg></span>
+      <h2>扫码即用（生成二维码）</h2><span class="hint2">把网址做成二维码给患者扫</span>
+    </div>
+    <div class="cbti-card">
+      <p style="margin:0 0 12px;color:var(--muted);font-size:14.5px;line-height:1.55">先把本页面挂到一个网址（医院内网，或免费静态托管如 Netlify Drop / GitHub Pages / Cloudflare Pages），再把该网址填入下方生成二维码——打印张贴或发给患者，手机扫码即可填写。</p>
+      <div class="qr-row">
+        <input id="qr-url" type="url" placeholder="https://你的域名/sleep.html  （部署后的网址）">
+        <button class="btn primary" id="qr-gen"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v3h-3M14 21h3"/></svg>生成二维码</button>
+        <button class="btn" id="qr-dl"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>下载 PNG</button>
+        <button class="btn" id="qr-print"><svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>打印</button>
+      </div>
+      <div class="qr-msg" id="qr-msg"></div>
+      <div id="qr-out" style="text-align:center;margin-top:6px"></div>
+      <p class="disclaim" style="padding:0;margin-top:14px">二维码生成需联网加载一次组件（仅此一步）；患者扫码后打开的是你部署的页面，是否需要联网取决于你的托管环境。二维码里只含网址，不含任何患者数据。</p>
+    </div>
+  </section>
+
+  <footer class="note">单页工具 · 填写内容自动保存在本浏览器（不上传任何服务器）；换设备或清除浏览器数据会丢失，长期留存请用医生端「保存进度 / 周报卡片」导出。条目结构源自 Consensus Sleep Diary（Carney CE, et al. SLEEP 2012;35:287-302），中文版为临床改编。</footer>
+</div>
+
+<!-- password modal -->
+<div class="modal-bg" id="pwd-bg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>医生端访问</h3>
+    <p>医生端包含完整临床指标与 CBT-I 建议，请输入访问密码。</p>
+    <input id="pwd-input" type="password" placeholder="请输入密码" autocomplete="off" inputmode="text">
+    <div class="err" id="pwd-err"></div>
+    <div class="acts">
+      <button class="btn ghost" id="pwd-cancel">取消</button>
+      <button class="btn primary" id="pwd-ok">进入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- icons ----------
+  var P={
+    bed:'<path d="M2 19v-5a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v5"/><path d="M2 19h20"/><path d="M6 11V8a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3"/>',
+    moon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    watch:'<circle cx="12" cy="12" r="6"/><polyline points="12 9 12 12 13.5 13.5"/><path d="M9 3.5 9.2 2h5.6L15 3.5M15 20.5l-.2 1.5H9.2L9 20.5"/>',
+    star:'<polygon points="12 2 15 9 22 9.3 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9.3 9 9"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+    clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    sunrise:'<path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/>',
+    sun:'<circle cx="12" cy="12" r="4.5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>',
+    coffee:'<path d="M18 8h1a3 3 0 0 1 0 6h-1"/><path d="M3 8h15v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2M10 2v2M14 2v2"/>',
+    wine:'<path d="M8 22h8M12 16v6M6 3h12l-1.2 6.5a5 5 0 0 1-9.6 0z"/>',
+    pill:'<rect x="2.5" y="9" width="19" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/>',
+    note:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+    nap:'<path d="M3 16h18M7 16a5 5 0 0 1 10 0M19 12l1-1M5 12l-1-1M12 9V8"/>',
+    target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>',
+    repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    bulb:'<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12c1 1 1 2 1 2h6s0-1 1-2a7 7 0 0 0-4-12z"/>',
+    refresh:'<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    moon2:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+  };
+  function ic(n,style){ return '<svg class="ic" viewBox="0 0 24 24"'+(style?' style="'+style+'"':'')+'>'+(P[n]||'')+'</svg>'; }
+
+  var mode="patient";
+  function blankDay(date){return {date:date||"",intoBed:"",trySleep:"",sol:"",awk:"",waso:"",finalWake:"",outBed:"",quality:"",rested:"",napCount:"",napDur:"",caffeine:"",alcohol:"",meds:"",notes:""};}
+  var state=[]; state.push(blankDay());
+  var collapsed=new Set();
+  var daysEl=document.getElementById("days");
+
+  function toMin(t){ if(!t||t.indexOf(":")<0) return null; var p=t.split(":"); var h=+p[0],m=+p[1]; if(isNaN(h)||isNaN(m)) return null; return h*60+m; }
+  function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+  function fmtDur(min){ if(min==null||isNaN(min)) return "—"; if(min<0) min=0; var h=Math.floor(min/60),m=Math.round(min%60); return (h>0?h+"h":"")+(m>0||h===0?m+"m":""); }
+  function pad(n){return (n<10?"0":"")+n;}
+  function mapEve(t){ return t<720 ? t+1440 : t; }
+  var TIMEKEYS=["intoBed","trySleep","finalWake","outBed"];
+  function friendlyTime(hhmm){ var m=toMin(hhmm); if(m==null) return ""; var h=Math.floor(m/60),mm=m%60;
+    var period=h<5?"凌晨":h<9?"早上":h<12?"上午":h<13?"中午":h<18?"下午":"晚上"; var h12=h%12; if(h12===0)h12=12;
+    return period+h12+":"+pad(mm); }
+  function setTConv(idx){ TIMEKEYS.forEach(function(k){ var el=document.getElementById("tconv-"+idx+"-"+k); if(el){ var v=friendlyTime(state[idx][k]); el.textContent=v?("= "+v):""; } }); }
+  function compute(d){
+    var into=toMin(d.intoBed), out=toMin(d.outBed), fin=toMin(d.finalWake);
+    var trys=toMin(d.trySleep); if(trys==null) trys=into;
+    if(into==null||out==null||fin==null||trys==null) return {ok:false};
+    function abs(t){ return t+(t<into?1440:0); }
+    var TIB=abs(out)-into, SPT=abs(fin)-abs(trys), sol=num(d.sol), waso=num(d.waso), TST=SPT-sol-waso;
+    if(TIB<=0) return {ok:false}; if(TST<0) TST=0;
+    return {ok:true,tib:TIB,tst:TST,se:TST/TIB*100,spt:SPT};
+  }
+  function seClass(se){ return se>=85?"g":(se>=80?"w":"b"); }
+  function seLabel(se){ return se>=85?"良好":(se>=80?"偏低":"低"); }
+  function seHex(se){ return se>=85?"#1f7a5a":(se>=80?"#b5781b":"#b0413c"); }
+
+  // ---------- day cards ----------
+  function field(idx,key,label,icon,type,hint,attrs,extraClass){
+    var v=state[idx][key]||"", extra=attrs||"", inp;
+    if(type==="select5"){
+      inp='<select data-idx="'+idx+'" data-field="'+key+'"><option value="">—</option>'+[1,2,3,4,5].map(function(n){return '<option value="'+n+'"'+(String(v)===String(n)?" selected":"")+'>'+n+'</option>';}).join('')+'</select>';
+    }else{ inp='<input data-idx="'+idx+'" data-field="'+key+'" type="'+type+'" value="'+(v.replace?v.replace(/"/g,'&quot;'):v)+'" '+extra+'>'; }
+    var conv=(type==="time")?'<span class="tconv pat-only" id="tconv-'+idx+'-'+key+'"></span>':'';
+    return '<div class="f '+(extraClass||'')+'"><label>'+ic(icon)+label+(hint?' <span class="hint">'+hint+'</span>':'')+'</label>'+inp+conv+'</div>';
+  }
+  function dayCard(idx){
+    var d=state[idx];
+    var core='<div class="grid">'+
+      field(idx,"intoBed","上床时刻","bed","time","躺上床")+
+      field(idx,"trySleep","打算入睡","moon","time","开始尝试睡")+
+      field(idx,"sol","入睡用时","watch","number","分钟",'min="0" step="1" placeholder="如 20"')+
+      field(idx,"quality","睡眠质量","star","select5","1差–5好",'',"qual")+
+      field(idx,"awk","夜间觉醒次数","bell","number","不含最后醒来",'min="0" step="1" placeholder="0"')+
+      field(idx,"waso","觉醒总时长","clock","number","分钟",'min="0" step="1" placeholder="0"')+
+      field(idx,"finalWake","最后醒来","sunrise","time","早晨")+
+      field(idx,"outBed","起床时刻","sun","time","不再尝试入睡")+'</div>';
+    var more='<details class="more"><summary>'+ic("coffee")+'白天与用药（选填）</summary><div class="grid">'+
+      field(idx,"rested","醒后解乏","sun","select5","1差–5好")+
+      field(idx,"napCount","白天打盹次数","nap","number","",'min="0" step="1" placeholder="0"')+
+      field(idx,"napDur","打盹总时长","clock","number","分钟",'min="0" step="1" placeholder="0"')+
+      field(idx,"caffeine","咖啡因","coffee","text","杯/末次",'placeholder="如 2杯/15:00"')+
+      field(idx,"alcohol","酒精","wine","text","标准杯/末次",'placeholder="如 1杯/21:00"')+
+      field(idx,"meds","助眠药","pill","text","名称·剂量·时刻",'placeholder="如 唑吡坦5mg 23:00"')+
+      '</div><div class="grid"><div class="f" style="grid-column:1/-1"><label>'+ic("note")+'备注 <span class="hint">疾病/特殊事件</span></label>'+
+      '<input data-idx="'+idx+'" data-field="notes" type="text" value="'+((d.notes||"").replace(/"/g,'&quot;'))+'" placeholder="如 感冒、加班、倒时差"></div></div></details>';
+    var cls="day"+(collapsed.has(idx)?" collapsed":"");
+    return '<div class="'+cls+'" data-day="'+idx+'"><div class="day-head"><div class="idx"><span class="num">'+(idx+1)+'</span>'+
+      '<h3>第 '+(idx+1)+' 天</h3><input type="date" data-idx="'+idx+'" data-field="date" value="'+(d.date||"")+'">'+
+      '<span class="head-se" id="hse-'+idx+'"></span></div>'+
+      '<div class="head-actions no-print"><button class="iconbtn chev" data-toggle="'+idx+'" title="折叠/展开">'+ic("moon")+'</button>'+
+      '<button class="iconbtn" data-rm="'+idx+'" title="删除">'+ic("note","")+'</button></div></div>'+core+more+'<div class="calc" id="calc-'+idx+'"></div></div>';
+  }
+  function render(){
+    daysEl.innerHTML=state.map(function(_,i){return dayCard(i);}).join("");
+    // fix chevron + delete icons (use proper glyphs)
+    document.querySelectorAll('[data-toggle]').forEach(function(b){ b.innerHTML='<svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>'; });
+    document.querySelectorAll('[data-rm]').forEach(function(b){ b.innerHTML='<svg class="ic" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'; });
+    state.forEach(function(_,i){ paintCalc(i); setTConv(i); });
+    renderTimeline(); summary(); saveLocal();
+  }
+  function paintCalc(idx){
+    var el=document.getElementById("calc-"+idx), hse=document.getElementById("hse-"+idx); if(!el) return;
+    var r=compute(state[idx]);
+    if(!r.ok){ el.innerHTML='<span class="label">'+ic("watch")+(mode==="doctor"?"医生计算 →":"昨晚小结 →")+'</span><span class="na">填「上床 · 打算入睡 · 最后醒来 · 起床」即自动计算</span>'; if(hse) hse.innerHTML=''; return; }
+    var c=seClass(r.se), pct=Math.round(r.se);
+    if(hse) hse.innerHTML='睡 '+fmtDur(r.tst)+' <span class="chip '+c+'-bg">'+pct+'%</span>';
+    var m1=mode==="doctor"?'卧床 TIB':'卧床时间', m2=mode==="doctor"?'睡眠 TST':'睡着时间';
+    var head=mode==="doctor"?'医生计算 →':'昨晚小结 →';
+    el.innerHTML='<span class="label">'+ic("watch")+head+'</span>'+
+      '<div class="metric"><span class="v">'+fmtDur(r.tib)+'</span><span class="k">'+m1+'</span></div>'+
+      '<div class="metric"><span class="v">'+fmtDur(r.tst)+'</span><span class="k">'+m2+'</span></div>'+
+      '<div class="se-wrap"><div class="se-top"><span class="pct '+c+'">'+pct+'%</span>'+
+      '<span class="chip '+c+'-bg">睡眠效率 '+seLabel(r.se)+'</span></div>'+
+      '<div class="meter"><i class="'+c+'-fill" style="width:'+Math.max(2,Math.min(100,pct))+'%"></i></div></div>';
+  }
+
+  // ---------- timeline ----------
+  function nightSegments(d){
+    var into=toMin(d.intoBed), out=toMin(d.outBed), fin=toMin(d.finalWake);
+    var trys=toMin(d.trySleep); if(trys==null) trys=into;
+    if(into==null||out==null||fin==null||trys==null) return null;
+    var I=mapEve(into),O=mapEve(out),F=mapEve(fin),T=mapEve(trys);
+    if(T<I)T=I; var onset=T+num(d.sol); if(onset>F)onset=F;
+    return {I:I,O:O,F:F,onset:onset,waso:num(d.waso),awk:num(d.awk)};
+  }
+  function renderTimeline(){
+    var rows=[],mins=[],maxs=[];
+    state.forEach(function(d,i){ var s=nightSegments(d); if(s){ rows.push({s:s,i:i}); mins.push(s.I); maxs.push(s.O);} });
+    var axis=document.getElementById("tl-axis"), tl=document.getElementById("timeline");
+    if(!rows.length){ axis.innerHTML=""; tl.innerHTML='<p class="na" style="color:#92a0b8;padding:8px 0">填写时间后自动生成每晚时间轴。</p>'; return; }
+    var lo=Math.min.apply(null,mins)-30, hi=Math.max.apply(null,maxs)+30, span=hi-lo;
+    function pos(v){ return (v-lo)/span*100; }
+    var startH=Math.ceil(lo/60), endH=Math.floor(hi/60), ax="";
+    for(var h=startH;h<=endH;h++){ if(h%2===0){ var hour=((h%24)+24)%24; ax+='<span class="tk" style="left:'+pos(h*60)+'%">'+pad(hour)+':00</span>'; } }
+    axis.innerHTML=ax;
+    var wk=["日","一","二","三","四","五","六"];
+    tl.innerHTML=rows.map(function(o){
+      var s=o.s, r=compute(state[o.i]);
+      var lab=state[o.i].date?state[o.i].date.slice(5):('第'+(o.i+1)+'天'), wd="";
+      if(state[o.i].date){ var dt=new Date(state[o.i].date+"T00:00"); if(!isNaN(dt)) wd="周"+wk[dt.getDay()]; }
+      var gl=""; for(var h=startH;h<=endH;h++){ gl+='<span class="gl" style="left:'+pos(h*60)+'%"></span>'; }
+      var seg='<span class="tl-seg tl-awake" style="left:'+pos(s.I)+'%;width:'+Math.max(0,pos(s.onset)-pos(s.I))+'%"></span>'+
+              '<span class="tl-seg tl-sleep" style="left:'+pos(s.onset)+'%;width:'+Math.max(0,pos(s.F)-pos(s.onset))+'%"></span>'+
+              '<span class="tl-seg tl-rest" style="left:'+pos(s.F)+'%;width:'+Math.max(0,pos(s.O)-pos(s.F))+'%"></span>';
+      if(s.waso>0 && pos(s.F)>pos(s.onset)){ var k=Math.max(1,s.awk||1), each=s.waso/k;
+        for(var j=1;j<=k;j++){ var center=s.onset+(s.F-s.onset)*j/(k+1); var wl=pos(center-each/2), ww=pos(center+each/2)-pos(center-each/2);
+          seg+='<span class="tl-seg tl-waso" style="top:5px;height:24px;left:'+wl+'%;width:'+Math.max(0.6,ww)+'%"></span>'; } }
+      var hex=r.ok?seHex(r.se):"#94a3b8";
+      return '<div class="tl-row"><div class="tl-label">'+lab+'<small>'+wd+'</small></div>'+
+        '<div class="tl-track">'+gl+seg+'</div>'+
+        '<div class="tl-meta" style="color:'+hex+'">'+(r.ok?Math.round(r.se)+'%':'—')+'<small>'+(r.ok?'睡 '+fmtDur(r.tst):'')+'</small></div></div>';
+    }).join("");
+  }
+
+  // ---------- summary ----------
+  function metrics(){
+    var valid=state.map(compute).map(function(r,i){return {r:r,i:i};}).filter(function(o){return o.r.ok;});
+    function avg(g){ var a=valid.map(g).filter(function(x){return x!=null&&!isNaN(x);}); return a.length?a.reduce(function(s,x){return s+x;},0)/a.length:null; }
+    return {valid:valid, se:avg(function(o){return o.r.se;}), tst:avg(function(o){return o.r.tst;}),
+      sol:avg(function(o){return num(state[o.i].sol);}), waso:avg(function(o){return num(state[o.i].waso);}),
+      q:avg(function(o){var q=parseFloat(state[o.i].quality);return isNaN(q)?null:q;})};
+  }
+  function summary(){
+    var m=metrics();
+    document.getElementById("doc-n").textContent=m.valid.length+" 天有效";
+    var L = mode==="doctor"
+      ? {se:"平均睡眠效率",tst:"平均睡眠 TST",sol:"平均入睡 SOL",waso:"平均觉醒 WASO",q:"平均睡眠质量"}
+      : {se:"平均睡眠效率",tst:"平均睡着时长",sol:"平均入睡用时",waso:"平均夜间醒来",q:"睡眠质量"};
+    function card(icn,v,k){ return '<div class="avg">'+ic(icn)+'<div class="v">'+v+'</div><div class="k">'+k+'</div></div>'; }
+    document.getElementById("avgs").innerHTML=
+      card("moon", m.se==null?'—':'<span class="'+seClass(m.se)+'">'+Math.round(m.se)+'<span class="u">%</span></span>',L.se)+
+      card("clock", m.tst==null?'—':fmtDur(m.tst),L.tst)+
+      card("watch", m.sol==null?'—':Math.round(m.sol)+'<span class="u"> min</span>',L.sol)+
+      card("bell", m.waso==null?'—':Math.round(m.waso)+'<span class="u"> min</span>',L.waso)+
+      card("star", m.q==null?'—':m.q.toFixed(1),L.q);
+    renderCBTI(m);
+    var ul=document.getElementById("advice");
+    if(!m.valid.length){ ul.innerHTML='<li>'+ic("watch")+'<span>填写时间后将自动生成解读。</span></li>'; return; }
+    if(mode==="patient"){
+      ul.innerHTML=patientSummary(m).map(function(t){return '<li>'+ic("moon")+'<span>'+t+'</span></li>';}).join("");
+      return;
+    }
+    var tips=[];
+    function tip(cls,txt){ tips.push('<li><span class="pill '+cls+'-bg">'+(cls==='g'?'良好':cls==='w'?'关注':'重点')+'</span><span>'+txt+'</span></li>'); }
+    if(m.se!=null){ if(m.se>=85) tip('g','平均睡眠效率 '+Math.round(m.se)+'%，达标（≥85%）。维持方案、巩固睡眠卫生与刺激控制。');
+      else if(m.se>=80) tip('w','平均睡眠效率 '+Math.round(m.se)+'%，偏低。加强刺激控制、限制卧床时间，复评趋势。');
+      else tip('b','平均睡眠效率 '+Math.round(m.se)+'%（<80%）。建议 CBT-I 睡眠限制。'); }
+    if(m.sol!=null&&m.sol>30) tip('w','平均入睡潜伏期 '+Math.round(m.sol)+' min（>30），以入睡困难为主。');
+    if(m.waso!=null&&m.waso>30) tip('w','平均夜间觉醒 '+Math.round(m.waso)+' min（>30），以睡眠维持障碍为主。');
+    if(m.tst!=null&&m.tst<360) tip('w','平均总睡眠 '+fmtDur(m.tst)+'（<6h），睡眠时间偏少。');
+    if(m.tst!=null){ var win=Math.max(300,Math.round(m.tst/15)*15); tip('g','若行睡眠限制：初始卧床窗口 ≈ '+fmtDur(win)+'（平均TST，不低于 5h）；每周据 SE 调整（≥90% 增 15–30 min，<85% 减 15 min）。'); }
+    ul.innerHTML=tips.join("");
+  }
+  function patientSummary(m){
+    if(!m.valid.length) return ["请先填写至少一晚的睡眠时间。"];
+    var Lr=[]; Lr.push("本周共记录 "+m.valid.length+" 晚，坚持得不错。");
+    if(m.tst!=null) Lr.push("平均每晚睡着约 "+fmtDur(m.tst)+"。");
+    if(m.se!=null){ if(m.se>=85) Lr.push("睡眠效率 "+Math.round(m.se)+"%，挺好（躺床时间利用充分）。");
+      else if(m.se>=80) Lr.push("睡眠效率 "+Math.round(m.se)+"%，略偏低。");
+      else Lr.push("睡眠效率 "+Math.round(m.se)+"%，偏低（躺床时没睡着的时间偏多）。"); }
+    var pat=[]; if(m.sol!=null&&m.sol>30) pat.push("入睡偏慢"); if(m.waso!=null&&m.waso>30) pat.push("夜里易醒");
+    if(pat.length) Lr.push("主要表现："+pat.join("、")+"。");
+    Lr.push("建议：固定起床时间、白天适度活动与晒太阳、睡前放松、少在床上玩手机；具体请遵医嘱。");
+    return Lr;
+  }
+
+  // ---------- CBT-I individualized advice ----------
+  function fmtClock(min){ min=((Math.round(min)%1440)+1440)%1440; return pad(Math.floor(min/60))+":"+pad(min%60); }
+  function renderCBTI(m){
+    var box=document.getElementById("cbti"); if(!box) return;
+    if(!m.valid.length){ box.innerHTML='<p style="color:#92a0b8;font-size:15px">导入或填写睡眠日记后，自动生成个体化 CBT-I 建议。</p>'; return; }
+    var ups=[],beds=[],napYes=false,caf=false,alc=false;
+    m.valid.forEach(function(o){ var d=state[o.i];
+      var u=toMin(d.outBed); if(u!=null) ups.push(u);
+      var b=toMin(d.intoBed); if(b!=null) beds.push(mapEve(b));
+      if(num(d.napCount)>0||num(d.napDur)>0) napYes=true;
+      if((d.caffeine||"").trim()) caf=true; if((d.alcohol||"").trim()) alc=true;
+    });
+    function mean(a){ return a.reduce(function(s,x){return s+x;},0)/a.length; }
+    function rng(a){ return a.length?Math.max.apply(null,a)-Math.min.apply(null,a):0; }
+    var avgWake=ups.length?mean(ups):null, wakeRange=rng(ups), bedRange=rng(beds);
+    var win=Math.max(300, Math.round((m.tst||300)/15)*15);
+    var anchorWake=avgWake!=null?Math.round(avgWake/15)*15:null;
+    var sugBed=anchorWake!=null?(anchorWake-win):null;
+    var wakeStr=anchorWake!=null?fmtClock(anchorWake):"—", bedStr=sugBed!=null?fmtClock(sugBed):"—";
+
+    function grp(cls,icon,title,items){ if(!items.length) return "";
+      return '<div class="cbti-grp '+(cls||'')+'"><h4>'+ic(icon)+title+'</h4><ul>'+
+        items.map(function(t){return '<li>'+ic("check")+'<span>'+t+'</span></li>';}).join("")+'</ul></div>'; }
+
+    // rx box
+    var rx='<div class="rx">'+
+      '<div class="item"><div class="v">'+fmtDur(win)+'</div><div class="k">'+ic("target")+'初始卧床窗口</div></div>'+
+      '<div class="item"><div class="v">'+wakeStr+'</div><div class="k">'+ic("sun")+'固定起床时间</div></div>'+
+      '<div class="item"><div class="v">'+bedStr+'</div><div class="k">'+ic("bed")+'上床不早于</div></div>'+
+      '</div>';
+
+    var g1=grp("","target","睡眠限制（核心）",[
+      "把卧床时间压缩到约 "+fmtDur(win)+"：固定 "+wakeStr+" 起床（含周末），相应上床不早于 "+bedStr+"。",
+      "只有真正有睡意时才上床；白天不补觉、不提前上床。",
+      "每周据平均睡眠效率调整：≥90% 卧床窗口 +15~30min；<85% −15min；85–90% 维持。初期日间稍困属正常，坚持 2–4 周。"
+    ]);
+    var g2=grp("","repeat","刺激控制",[
+      "床只用于睡觉（与性生活）；不在床上玩手机、看电视、工作或刷视频。",
+      "上床约 20 分钟仍无睡意、或夜醒后约 20 分钟难再入睡，就起床到另一房间做安静昏暗的活动，有睡意再回床，可反复。",
+      "每天同一时间起床，无论前一晚睡得如何。"
+    ]);
+    var hyg=[];
+    if(caf) hyg.push("本周记录有咖啡因：午后避免咖啡、浓茶、功能饮料、可乐等。");
+    else hyg.push("下午（约 14:00）后限制咖啡因摄入。");
+    if(alc) hyg.push("本周记录有饮酒：睡前 3–4 小时避免酒精（酒精会加重后半夜觉醒）。");
+    if(napYes) hyg.push("本周有日间打盹：尽量不午睡；如确需，控制在 ≤20 分钟且不晚于 15:00。");
+    hyg.push("卧室保持安静、黑暗、凉爽；睡前 1 小时调暗灯光、减少强光与电子屏幕。");
+    hyg.push("白天规律活动并接受晨间自然光照，有助稳定昼夜节律。");
+    var g3=grp("","coffee","睡眠卫生（个体化）",hyg);
+
+    var cog=[];
+    if((m.sol!=null&&m.sol>30)||(m.q!=null&&m.q<3)) cog.push("睡前 1 小时建立放松程序：腹式呼吸、渐进性肌肉放松或正念冥想。");
+    cog.push("纠正对失眠的过度担忧与不合理信念（如“必须睡满 8 小时”“睡不好明天一定毁了”）。");
+    cog.push("不在床上反复看钟；把对睡眠的“努力”放下，顺其自然。");
+    var g4=grp("","bulb","认知与放松",cog);
+
+    var reg=[];
+    if(wakeRange>90||bedRange>90) reg.push("本周作息波动较大（起床时间相差约 "+Math.round(wakeRange)+" 分钟）：优先固定起床时间，周末也不赖床。");
+    var g5=grp("","refresh","作息规律性",reg);
+
+    var pattern=[]; 
+    if(m.sol!=null&&m.sol>30) pattern.push("以入睡困难为主——刺激控制与放松训练为重点。");
+    if(m.waso!=null&&m.waso>30) pattern.push("以睡眠维持障碍为主——睡眠限制与“夜醒起床法”为重点，避免看钟。");
+    if(m.se!=null&&m.se>=85) pattern.push("睡眠效率已达标（≥85%），重在巩固与逐步放宽卧床窗口。");
+    var g0=grp("","clock","本周特征",pattern);
+
+    var g6=grp("alert","refresh","复评与注意",[
+      "1–2 周后据睡眠日记复评，按睡眠效率调整卧床窗口。",
+      "睡眠限制对双相情感障碍、未控制癫痫、严重日间嗜睡或职业驾驶/高危作业者应先评估后慎用。"
+    ]);
+
+    box.innerHTML=rx+g0+g1+g2+g3+g4+g5+g6;
+  }
+
+  // ---------- weekly card (canvas) ----------
+  function drawCard(){
+    var m=metrics(), cv=document.getElementById("card-canvas"), ctx=cv.getContext("2d");
+    var W=1040, pad=44, scale=2;
+    var name=document.getElementById("m-name").value||"";
+    var start=document.getElementById("m-start").value||"";
+    var dates=state.map(function(d){return d.date;}).filter(Boolean).sort();
+    var range=dates.length?(dates[0]+" ~ "+dates[dates.length-1]):(start||"——");
+    var lines=patientSummary(m), nDays=m.valid.length;
+    var FB='-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif';
+    var headerH=150,nameH=60,metricsH=300,barsH=nDays?220:60,tlH=nDays?(60+nDays*40+30):0,footH=70;
+    ctx.setTransform(1,0,0,1,0,0); ctx.font='400 23px '+FB;
+    var sumLines=0; lines.forEach(function(t){ var chars=t.split(""),ln="",n=1; for(var i=0;i<chars.length;i++){ var tt=ln+chars[i]; if(ctx.measureText(tt).width>(W-2*pad)&&ln){ n++; ln=chars[i]; } else ln=tt; } sumLines+=n; });
+    var sumH=54+sumLines*34+lines.length*4;
+    var H=pad+headerH+nameH+metricsH+barsH+tlH+sumH+footH+pad;
+    cv.width=W*scale; cv.height=H*scale; ctx.setTransform(scale,0,0,scale,0,0);
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+    function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    function pad2(n){return (n<10?"0":"")+n;}
+    ctx.fillStyle="#1f4e79"; ctx.fillRect(0,0,W,headerH);
+    ctx.fillStyle="#fff"; ctx.font='800 46px '+FB; ctx.fillText("睡眠周报",pad,80);
+    ctx.font='400 24px '+FB; ctx.fillStyle="rgba(255,255,255,.85)"; ctx.fillText("Sleep Weekly Report",pad,116);
+    ctx.textAlign="right"; ctx.font='600 26px '+FB; ctx.fillStyle="#fff"; ctx.fillText(range,W-pad,72);
+    ctx.font='400 22px '+FB; ctx.fillStyle="rgba(255,255,255,.85)"; ctx.fillText(nDays+" 晚有效记录",W-pad,108); ctx.textAlign="left";
+    var y=headerH+44; ctx.fillStyle="#16233f"; ctx.font='700 30px '+FB; ctx.fillText("姓名："+(name||"____"),pad,y); y+=46;
+    var seHexv=m.se==null?"#94a3b8":seHex(m.se), seLab=m.se==null?"—":seLabel(m.se);
+    rr(pad,y,W-2*pad,118,16); ctx.fillStyle=m.se==null?"#eef2f7":(m.se>=85?"#e1f2ea":(m.se>=80?"#fbefda":"#fbe3e1")); ctx.fill();
+    ctx.fillStyle=seHexv; ctx.font='900 64px '+FB; ctx.textBaseline="middle"; ctx.fillText(m.se==null?"—":Math.round(m.se)+"%",pad+28,y+59);
+    ctx.font='700 26px '+FB; ctx.fillText("睡眠效率 "+seLab,pad+250,y+44);
+    ctx.fillStyle="#5d6a83"; ctx.font='400 20px '+FB; ctx.fillText("= 实际睡着 ÷ 卧床时间（目标 ≥85%）",pad+250,y+80);
+    ctx.textBaseline="alphabetic"; y+=140;
+    function tile(x,w,big,small){ rr(x,y,w,120,14); ctx.fillStyle="#f3f7fc"; ctx.fill();
+      ctx.fillStyle="#16233f"; ctx.font='800 36px '+FB; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(big,x+w/2,y+50);
+      ctx.fillStyle="#5d6a83"; ctx.font='600 19px '+FB; ctx.fillText(small,x+w/2,y+90); ctx.textAlign="left"; ctx.textBaseline="alphabetic"; }
+    var gw=(W-2*pad-3*14)/4;
+    tile(pad,gw,m.tst==null?"—":fmtDur(m.tst),"平均睡眠时长");
+    tile(pad+(gw+14),gw,m.sol==null?"—":Math.round(m.sol)+" min","平均入睡用时");
+    tile(pad+2*(gw+14),gw,m.waso==null?"—":Math.round(m.waso)+" min","平均夜间觉醒");
+    tile(pad+3*(gw+14),gw,m.q==null?"—":m.q.toFixed(1),"睡眠质量(1–5)");
+    y+=120+30;
+    if(nDays){
+      ctx.fillStyle="#2e5496"; ctx.font='700 22px '+FB; ctx.fillText("每日睡眠效率",pad,y); y+=18;
+      var bx=pad,bw=W-2*pad,bh=140,base=y+bh, gy=base-bh*0.85;
+      ctx.strokeStyle="#cdd8e8"; ctx.setLineDash([6,5]); ctx.beginPath(); ctx.moveTo(bx,gy); ctx.lineTo(bx+bw,gy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle="#8696b0"; ctx.font='400 16px '+FB; ctx.fillText("85%",bx+bw-34,gy-6);
+      var n=m.valid.length, slot=bw/n, colw=Math.min(54,slot*0.6);
+      m.valid.forEach(function(o,k){ var se=o.r.se,h=Math.max(4,bh*Math.min(100,se)/100),cx=bx+slot*k+slot/2;
+        ctx.fillStyle=seHex(se); rr(cx-colw/2,base-h,colw,h,7); ctx.fill();
+        ctx.fillStyle=seHex(se); ctx.font='700 18px '+FB; ctx.textAlign="center"; ctx.fillText(Math.round(se)+"%",cx,base-h-8);
+        ctx.fillStyle="#5d6a83"; ctx.font='400 15px '+FB; var lab=state[o.i].date?state[o.i].date.slice(5):('第'+(o.i+1)+'天'); ctx.fillText(lab,cx,base+22); ctx.textAlign="left"; });
+      y=base+50;
+    }
+    if(nDays){
+      ctx.fillStyle="#2e5496"; ctx.font='700 22px '+FB; ctx.fillText("每晚睡眠时段",pad,y); y+=14;
+      var segs=[],mins=[],maxs=[];
+      m.valid.forEach(function(o){ var s=nightSegments(state[o.i]); if(s){segs.push({s:s,i:o.i,r:o.r}); mins.push(s.I); maxs.push(s.O);} });
+      var lo=Math.min.apply(null,mins)-30, hi=Math.max.apply(null,maxs)+30, sp=hi-lo, tx=pad+96, tw=W-2*pad-96-60;
+      function px(v){ return tx+(v-lo)/sp*tw; }
+      ctx.fillStyle="#8696b0"; ctx.font='400 15px '+FB; ctx.textAlign="center";
+      for(var hh=Math.ceil(lo/60);hh<=Math.floor(hi/60);hh++){ if(hh%2===0){ var hour=((hh%24)+24)%24; ctx.fillText(pad2(hour)+":00",px(hh*60),y+12);} }
+      ctx.textAlign="left"; y+=26;
+      segs.forEach(function(o){ var s=o.s, ry=y, rh=26;
+        rr(tx,ry,tw,rh,7); ctx.fillStyle="#f1f5fa"; ctx.fill();
+        ctx.fillStyle="#e0a93a"; var a1=px(s.I),a2=px(s.onset); if(a2>a1){ rr(a1,ry+3,a2-a1,rh-6,4); ctx.fill(); }
+        ctx.fillStyle="#2e5496"; var s1=px(s.onset),s2=px(s.F); if(s2>s1){ rr(s1,ry+3,s2-s1,rh-6,4); ctx.fill(); }
+        ctx.fillStyle="#f0d9a8"; var r1=px(s.F),r2=px(s.O); if(r2>r1){ rr(r1,ry+3,r2-r1,rh-6,4); ctx.fill(); }
+        if(s.waso>0&&s2>s1){ var k=Math.max(1,s.awk||1),each=s.waso/k; ctx.fillStyle="#c2702a"; for(var j=1;j<=k;j++){ var c=s.onset+(s.F-s.onset)*j/(k+1); var wl=px(c-each/2),wr=px(c+each/2); rr(wl,ry+3,Math.max(2,wr-wl),rh-6,2); ctx.fill(); } }
+        ctx.fillStyle="#16233f"; ctx.font='700 16px '+FB; ctx.textBaseline="middle"; var lab=state[o.i].date?state[o.i].date.slice(5):('第'+(o.i+1)+'天'); ctx.fillText(lab,pad,ry+rh/2);
+        ctx.fillStyle=seHex(o.r.se); ctx.textAlign="right"; ctx.fillText(Math.round(o.r.se)+"%",W-pad,ry+rh/2); ctx.textAlign="left"; ctx.textBaseline="alphabetic"; y+=rh+14; });
+      ctx.font='400 16px '+FB; ctx.textBaseline="middle"; var lx=pad+96;
+      function leg(color,txt){ ctx.fillStyle=color; rr(lx,y-2,20,13,3); ctx.fill(); ctx.fillStyle="#5d6a83"; ctx.fillText(txt,lx+26,y+5); lx+=26+ctx.measureText(txt).width+24; }
+      leg("#e0a93a","入睡前清醒"); leg("#2e5496","睡眠"); leg("#c2702a","夜醒(示意)"); leg("#f0d9a8","醒后躺床"); ctx.textBaseline="alphabetic"; y+=34;
+    }
+    ctx.fillStyle="#2e5496"; ctx.font='700 22px '+FB; ctx.fillText("小结",pad,y); y+=34;
+    ctx.fillStyle="#16233f"; ctx.font='400 23px '+FB;
+    function wrap(text,x,yy,maxW,lh){ var chars=text.split(""),line=""; for(var i=0;i<chars.length;i++){ var test=line+chars[i]; if(ctx.measureText(test).width>maxW&&line){ ctx.fillText(line,x,yy); line=chars[i]; yy+=lh; } else line=test; } ctx.fillText(line,x,yy); return yy+lh; }
+    lines.forEach(function(t){ y=wrap(t,pad,y,W-2*pad,34)+6; });
+    ctx.fillStyle="#8696b0"; ctx.font='400 17px '+FB; ctx.fillText("由睡眠日记自动生成 · 仅供参考，具体诊疗请遵医嘱",pad,H-30);
+  }
+
+  // ---------- events ----------
+  daysEl.addEventListener("input",function(e){
+    var t=e.target, idx=t.getAttribute("data-idx"), field=t.getAttribute("data-field");
+    if(idx==null||field==null) return; idx=+idx; state[idx][field]=t.value;
+    if(field!=="date") paintCalc(idx);
+    if(TIMEKEYS.indexOf(field)>=0) setTConv(idx);
+    renderTimeline(); summary(); saveLocal();
+  });
+  daysEl.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    var rm=b.getAttribute("data-rm"), tg=b.getAttribute("data-toggle");
+    if(rm!=null){ var k=+rm; state.splice(k,1); var ns=new Set(); collapsed.forEach(function(x){ if(x<k) ns.add(x); else if(x>k) ns.add(x-1); }); collapsed=ns; if(!state.length) state.push(blankDay()); render(); }
+    else if(tg!=null){ tg=+tg; var card=b.closest(".day"); if(collapsed.has(tg)){ collapsed.delete(tg); card.classList.remove("collapsed"); } else { collapsed.add(tg); card.classList.add("collapsed"); } }
+  });
+  function addDay(){ var last=state.length?state[state.length-1].date:"",nd=""; if(last){ var dt=new Date(last+"T00:00"); if(!isNaN(dt)){ dt.setDate(dt.getDate()+1); nd=dt.getFullYear()+"-"+pad(dt.getMonth()+1)+"-"+pad(dt.getDate()); } } state.push(blankDay(nd)); render(); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); }
+  document.getElementById("add").onclick=addDay; document.getElementById("add2").onclick=addDay;
+  document.getElementById("toggle-all").onclick=function(){
+    var anyOpen=state.some(function(_,i){return !collapsed.has(i);});
+    if(anyOpen){ state.forEach(function(d,i){ if(compute(d).ok) collapsed.add(i); }); this.textContent="展开全部"; }
+    else { collapsed.clear(); this.textContent="收起已填"; }
+    render();
+  };
+  document.getElementById("m-start").addEventListener("change",function(e){ var s=e.target.value; if(!s) return; var dt=new Date(s+"T00:00"); if(isNaN(dt)) return; state.forEach(function(d,i){ var x=new Date(dt); x.setDate(x.getDate()+i); d.date=x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate()); }); render(); });
+  document.getElementById("sample").onclick=function(){
+    var sd=state[0]?state[0].date:"";
+    state=[
+      {date:"",intoBed:"22:15",trySleep:"23:30",sol:"55",awk:"3",waso:"60",finalWake:"06:35",outBed:"07:20",quality:"3",rested:"2",napCount:"1",napDur:"40",caffeine:"2杯/15:00",alcohol:"1杯/21:00",meds:"唑吡坦5mg 23:00",notes:"感冒"},
+      {date:"",intoBed:"23:00",trySleep:"23:20",sol:"25",awk:"1",waso:"20",finalWake:"06:40",outBed:"07:00",quality:"4",rested:"3",napCount:"",napDur:"",caffeine:"",alcohol:"",meds:"",notes:""},
+      {date:"",intoBed:"23:40",trySleep:"00:10",sol:"30",awk:"2",waso:"35",finalWake:"06:20",outBed:"06:50",quality:"3",rested:"3",napCount:"",napDur:"20",caffeine:"1杯/10:00",alcohol:"",meds:"",notes:""}
+    ];
+    var s=document.getElementById("m-start").value||sd;
+    if(s){ var dt=new Date(s+"T00:00"); if(!isNaN(dt)){ state.forEach(function(d,i){ var x=new Date(dt); x.setDate(x.getDate()+i); d.date=x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate()); }); } }
+    collapsed.clear(); render(); drawCard(); };
+  document.getElementById("clear").onclick=function(){ if(!confirm("清空所有已填内容？此操作不可撤销（可先「保存进度」）。")) return; state=[]; collapsed.clear(); state.push(blankDay()); render(); };
+  document.getElementById("print").onclick=function(){ window.print(); };
+
+  function payload(){ return {meta:{name:document.getElementById("m-name").value,id:document.getElementById("m-id").value,start:document.getElementById("m-start").value},days:state}; }
+  function download(filename,text,type){ var blob=new Blob([text],{type:type||"text/plain;charset=utf-8"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100); }
+  var LS_KEY="sleepDiary_v1";
+  function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(payload())); }catch(e){} }
+  function loadLocal(){ try{ var raw=localStorage.getItem(LS_KEY); if(!raw) return false; var data=JSON.parse(raw);
+    if(data.meta){ document.getElementById("m-name").value=data.meta.name||""; document.getElementById("m-id").value=data.meta.id||""; document.getElementById("m-start").value=data.meta.start||""; }
+    if(Array.isArray(data.days)&&data.days.length){ state=data.days.map(function(d){var b=blankDay();for(var k in b){if(d[k]!=null)b[k]=d[k];}return b;}); }
+    return true; }catch(e){ return false; } }
+  document.getElementById("save").onclick=function(){ var name=document.getElementById("m-name").value||"睡眠日记"; download(name+"_睡眠日记.json",JSON.stringify(payload(),null,2),"application/json"); };
+  document.getElementById("load").onclick=function(){ document.getElementById("file").click(); };
+  document.getElementById("file").addEventListener("change",function(e){ var f=e.target.files[0]; if(!f) return; var rd=new FileReader();
+    rd.onload=function(){ try{ var data=JSON.parse(rd.result);
+      if(data.meta){ document.getElementById("m-name").value=data.meta.name||""; document.getElementById("m-id").value=data.meta.id||""; document.getElementById("m-start").value=data.meta.start||""; }
+      if(Array.isArray(data.days)&&data.days.length){ state=data.days.map(function(d){var b=blankDay();for(var k in b){if(d[k]!=null)b[k]=d[k];}return b;}); collapsed.clear(); }
+      render(); drawCard();
+    }catch(err){ alert("文件无法读取：请选择由本工具「保存进度」导出的 JSON 文件。"); } };
+    rd.readAsText(f); e.target.value=""; });
+  document.getElementById("csv").onclick=function(){
+    var head=["日期","上床","打算入睡","SOL(min)","觉醒次数","WASO(min)","最后醒来","起床","睡眠质量","醒后解乏","打盹次数","打盹时长","咖啡因","酒精","助眠药","备注","TIB(min)","TST(min)","SE(%)"];
+    var rows=[head]; state.forEach(function(d){ var r=compute(d); rows.push([d.date,d.intoBed,d.trySleep,d.sol,d.awk,d.waso,d.finalWake,d.outBed,d.quality,d.rested,d.napCount,d.napDur,d.caffeine,d.alcohol,d.meds,d.notes,r.ok?Math.round(r.tib):"",r.ok?Math.round(r.tst):"",r.ok?Math.round(r.se):""]); });
+    var csv="\ufeff"+rows.map(function(r){return r.map(function(c){c=(c==null?"":String(c)); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(",");}).join("\n");
+    var name=document.getElementById("m-name").value||"睡眠日记"; download(name+"_睡眠日记.csv",csv,"text/csv;charset=utf-8"); };
+  document.getElementById("gen-card").onclick=function(){ drawCard(); };
+  document.getElementById("dl-card").onclick=function(){ drawCard(); var cv=document.getElementById("card-canvas"); var name=document.getElementById("m-name").value||"睡眠"; var a=document.createElement("a"); a.href=cv.toDataURL("image/png"); a.download=name+"_睡眠周报.png"; document.body.appendChild(a); a.click(); a.remove(); };
+
+  // ---------- QR (scan-to-use) ----------
+  var qrDataURL="";
+  function loadQRLib(cb){ if(window.QRCode){ cb(true); return; }
+    var s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    s.onload=function(){ cb(!!window.QRCode); }; s.onerror=function(){ cb(false); }; document.head.appendChild(s); }
+  function genQR(){
+    var url=(document.getElementById("qr-url").value||"").trim();
+    var out=document.getElementById("qr-out"), msg=document.getElementById("qr-msg");
+    if(!url){ msg.textContent="请先填写已部署的网址（如 https://你的域名/sleep.html）。"; out.innerHTML=""; return; }
+    if(!/^https?:\/\//i.test(url)){ msg.textContent="网址需以 http:// 或 https:// 开头。"; return; }
+    msg.textContent="正在生成…";
+    loadQRLib(function(ok){
+      if(!ok){ out.innerHTML=""; msg.innerHTML='二维码组件加载失败（可能当前离线）。联网后重试，或用任意二维码工具把此网址生成二维码：<br><b style="word-break:break-all">'+url.replace(/</g,"&lt;")+'</b>'; return; }
+      var holder=document.createElement("div");
+      try{ new QRCode(holder,{text:url,width:600,height:600,correctLevel:QRCode.CorrectLevel.M}); }
+      catch(e){ msg.textContent="生成失败："+(e&&e.message||e); return; }
+      setTimeout(function(){
+        var cvs=holder.querySelector("canvas"), im=holder.querySelector("img");
+        qrDataURL = cvs?cvs.toDataURL("image/png"):(im?im.src:"");
+        if(!qrDataURL){ msg.textContent="生成失败，请重试。"; return; }
+        out.innerHTML='<div class="qr-card" id="qr-card"><div class="qr-title">睡眠日记 · 扫码填写</div>'+
+          '<img class="qr-img" src="'+qrDataURL+'" alt="睡眠日记二维码">'+
+          '<div class="qr-sub">用手机相机或微信「扫一扫」，打开后每天记录睡眠</div>'+
+          '<div class="qr-link">'+url.replace(/</g,"&lt;")+'</div></div>';
+        msg.textContent="";
+      },90);
+    });
+  }
+  document.getElementById("qr-gen").onclick=genQR;
+  document.getElementById("qr-dl").onclick=function(){ if(!qrDataURL){ genQR(); return; } var a=document.createElement("a"); a.href=qrDataURL; a.download="睡眠日记二维码.png"; document.body.appendChild(a); a.click(); a.remove(); };
+  document.getElementById("qr-print").onclick=function(){ if(!qrDataURL){ genQR(); return; } var url=(document.getElementById("qr-url").value||"").trim();
+    var w=window.open("","_blank"); if(!w){ alert("请允许弹出窗口后重试，或用「下载 PNG」自行打印。"); return; }
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>睡眠日记二维码</title></head>'+
+      '<body style="margin:0;font-family:-apple-system,PingFang SC,Microsoft YaHei,sans-serif;text-align:center;padding:48px 24px;color:#16233f">'+
+      '<div style="font-size:30px;font-weight:800;color:#1f4e79;margin-bottom:6px">睡眠日记 · 扫码填写</div>'+
+      '<div style="font-size:16px;color:#5d6a83;margin-bottom:22px">用手机相机或微信「扫一扫」，每天记录睡眠</div>'+
+      '<img src="'+qrDataURL+'" style="width:380px;height:380px;image-rendering:pixelated">'+
+      '<div style="font-size:14px;color:#2e5496;margin-top:18px;word-break:break-all">'+url.replace(/</g,"&lt;")+'</div>'+
+      '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},250)}<\/scr'+'ipt></body></html>'); w.document.close(); };
+  (function(){ var l=location.href; if(/^https?:\/\//i.test(l)){ var qi=document.getElementById("qr-url"); if(qi) qi.value=l; } })();
+
+  // mode switch + password gate
+  var authed=false;
+  function applyMode(mm){
+    mode=mm; document.body.className="mode-"+mm;
+    Array.prototype.forEach.call(document.querySelectorAll('#mode button'),function(b){ b.classList.toggle("active",b.getAttribute("data-mode")===mm); });
+    document.getElementById("who").innerHTML=(mm==="patient"?ic("moon")+" 患者端":ic("clock")+" 医生端");
+    document.getElementById("who-desc").textContent=(mm==="patient"?"":"无需逐日填写。显示时间轴、医生小结、周报卡片与 CBT-I 建议；可「载入进度」导入患者日记。");
+    var bs=document.getElementById("brand-sub"); if(bs) bs.textContent=(mm==="patient"?"每天早晨花一分钟，记录昨晚睡得怎么样":"临床指标 · 睡眠时段时间轴 · 周报卡片 · CBT-I 建议");
+    render(); if(mm==="doctor") drawCard();
+  }
+  var pwdBg=document.getElementById("pwd-bg"), pwdInput=document.getElementById("pwd-input"), pwdErr=document.getElementById("pwd-err");
+  function openPwd(){ pwdBg.classList.add("show"); pwdErr.textContent=""; pwdInput.value=""; setTimeout(function(){pwdInput.focus();},50); }
+  function closePwd(){ pwdBg.classList.remove("show"); }
+  function tryPwd(){ if(pwdInput.value==="HXSN"){ authed=true; closePwd(); applyMode("doctor"); } else { pwdErr.textContent="密码不正确，请重试。"; pwdInput.select(); } }
+  document.getElementById("pwd-ok").onclick=tryPwd;
+  document.getElementById("pwd-cancel").onclick=closePwd;
+  pwdInput.addEventListener("keydown",function(e){ if(e.key==="Enter") tryPwd(); if(e.key==="Escape") closePwd(); });
+  pwdBg.addEventListener("click",function(e){ if(e.target===pwdBg) closePwd(); });
+  function requestMode(mm){ if(mm==="doctor"&&!authed){ openPwd(); return; } applyMode(mm); }
+  document.getElementById("mode").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b) requestMode(b.getAttribute("data-mode")); });
+
+  ["m-name","m-id"].forEach(function(id){ document.getElementById(id).addEventListener("input",saveLocal); });
+  loadLocal();
+  applyMode("patient");
+})();
+</script>
+</body>
+</html>
